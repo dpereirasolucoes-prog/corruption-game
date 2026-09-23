@@ -100,7 +100,7 @@
     <canvas id="board" width="400" height="400" tabindex="0" role="img" aria-label="Tabuleiro do jogo Corruption"></canvas>
   </div>
 
-  <p class="hint">Setas do teclado (desktop) ou arraste o dedo (celular) para mover. 💵 faz crescer. 👮 faz encolher — se sobrar só a cabeça, é fim de jogo.</p>
+  <p class="hint">Setas do teclado (desktop) ou arraste o dedo (celular) para mover. 💵 faz crescer. 👮 faz encolher — se sobrar só a cabeça, é fim de jogo. A cada 10 sacos, o jogo fica mais rápido e a polícia reforça o efetivo.</p>
 
   <script>
   (function(){
@@ -121,6 +121,19 @@
     bestEl.textContent = best;
 
     var snake, dir, nextDir, food, police, score, gameOver, eatPulse, tickCount;
+    var level, levelFlash, loopId, speed;
+    var BASE_SPEED = 150;
+    var MIN_SPEED = 65;
+    var MAX_POLICE = 5;
+
+    function speedForLevel(lvl){
+      return Math.max(MIN_SPEED, BASE_SPEED - lvl * 12);
+    }
+
+    function startLoop(){
+      if (loopId) clearInterval(loopId);
+      loopId = setInterval(tick, speed);
+    }
 
     function reset(){
       snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
@@ -132,7 +145,11 @@
       gameOver = false;
       eatPulse = 0;
       tickCount = 0;
+      level = 0;
+      levelFlash = 0;
+      speed = BASE_SPEED;
       scoreEl.textContent = '0';
+      startLoop();
       render();
     }
 
@@ -192,6 +209,14 @@
       drawEmoji('🤵',snake[0].x,snake[0].y,pulseScale);
       if (eatPulse>0) eatPulse--;
 
+      if (levelFlash > 0){
+        ctx.fillStyle = 'rgba(242,201,76,' + Math.min(0.9, levelFlash/20) + ')';
+        ctx.font = "600 15px 'Inter', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText('NÍVEL ' + level + ' — mais rápido!', canvas.width/2, 20);
+        levelFlash--;
+      }
+
       if (gameOver){
         ctx.fillStyle='rgba(0,0,0,0.6)';
         ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -241,6 +266,17 @@
       if (head.x===food.x && head.y===food.y){
         score++; scoreEl.textContent = score; eatPulse = 3;
         food = spawnFree();
+
+        var newLevel = Math.floor(score / 10);
+        if (newLevel > level){
+          level = newLevel;
+          speed = speedForLevel(level);
+          startLoop();
+          levelFlash = 20;
+          if (level % 2 === 0 && police.length < MAX_POLICE){
+            police.push(spawnFree());
+          }
+        }
       } else {
         snake.pop();
       }
@@ -291,7 +327,6 @@
     canvas.addEventListener('click', function(){ if (gameOver) reset(); });
 
     reset();
-    setInterval(tick, 150);
   })();
   </script>
 
